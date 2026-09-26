@@ -1,0 +1,30 @@
+# Environment Variables — NEVER commit
+.env
+.env.local
+.env.*.local
+
+# Node Dependencies
+node_modules/
+npm-debug.log*
+yarn-error.log*
+
+# User Data & Security — NEVER commit
+data/users.json
+data/*.bak
+data/*.tmp
+
+# Local uploads directory (ephemeral, not used on Vercel)
+uploads/
+
+# OS & Temporary Files
+.DS_Store
+Thumbs.db
+*.log
+
+# Server-only code (not needed on static Vercel deploy)
+# server/
+# Uncomment above if you only want to deploy static files
+
+# NOTE: videos/ and photos/ are intentionally included
+# They ARE deployed to Vercel as static assets.
+# Large videos should be hosted on a CDN/R2 in production.
