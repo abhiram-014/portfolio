@@ -3,14 +3,12 @@
  * Pure static build (Vercel). No backend API calls.
  *
  * Features:
- *  1. Custom difference cursor (desktop only)
- *  2. Navbar scroll effect
- *  3. Animated stat counters
- *  4. Scroll reveal (IntersectionObserver)
- *  5. Showreel — two-stage lazy loader (proximity load + viewport play/pause)
- *  6. Portfolio grid render from static data
- *  7. Portfolio videos — two-stage lazy loader (proximity load + viewport play/pause)
- *  8. Once loaded, videos stay loaded (no source removal on scroll-out)
+ *  1. Navbar scroll effect
+ *  2. Animated stat counters
+ *  3. Scroll reveal (IntersectionObserver)
+ *  4. Showreel — two-stage lazy loader (proximity load + viewport play/pause)
+ *  5. Portfolio grid render from static data
+ *  6. Featured preview lazy loading; supporting clips load on request
  */
 
 /* ═══════════════════════════════════════════════════════════
@@ -112,61 +110,18 @@ const PORTFOLIO_VIDEOS = [
   }
 ];
 
+const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
 /* ═══════════════════════════════════════════
    BOOT
 ═══════════════════════════════════════════ */
 document.addEventListener('DOMContentLoaded', () => {
-  initCustomCursor();
   initNavScroll();
   initStatsCounter();
   initScrollReveal();
   initShowreelLazyLoad();  // showreel-specific two-stage loader
   renderPortfolioGrid();   // render cards from static data, then observe
 });
-
-/* ═══════════════════════════════════════════
-   1. CUSTOM DIFFERENCE CURSOR (desktop only)
-═══════════════════════════════════════════ */
-function initCustomCursor() {
-  // Only activate on true pointer devices (not touch)
-  if (!window.matchMedia('(hover: hover) and (pointer: fine)').matches) return;
-
-  const cursor = document.getElementById('cursor');
-  if (!cursor) return;
-
-  let mouseX = window.innerWidth / 2;
-  let mouseY = window.innerHeight / 2;
-  let curX = mouseX;
-  let curY = mouseY;
-
-  document.addEventListener('mousemove', (e) => {
-    mouseX = e.clientX;
-    mouseY = e.clientY;
-  }, { passive: true });
-
-  (function animateCursor() {
-    // Lerp — smooth lag follow
-    curX += (mouseX - curX) * 0.16;
-    curY += (mouseY - curY) * 0.16;
-    cursor.style.left = curX + 'px';
-    cursor.style.top  = curY + 'px';
-    requestAnimationFrame(animateCursor);
-  })();
-
-  refreshCursorListeners();
-}
-
-function refreshCursorListeners() {
-  const cursor = document.getElementById('cursor');
-  if (!cursor) return;
-
-  document.querySelectorAll('a, button, .tag, .chip, .filter-btn, .vid-card, .about-frame, .step')
-    .forEach((el) => {
-      // Remove previous listeners before re-adding (safe for dynamic elements)
-      el.addEventListener('mouseenter', () => cursor.classList.add('hover'));
-      el.addEventListener('mouseleave', () => cursor.classList.remove('hover'));
-    });
-}
 
 /* ═══════════════════════════════════════════
    2. NAVBAR SCROLL EFFECT
@@ -185,6 +140,13 @@ function initNavScroll() {
 function initStatsCounter() {
   const counters = document.querySelectorAll('.stat-number');
   if (!counters.length) return;
+
+  if (prefersReducedMotion) {
+    counters.forEach(el => {
+      el.textContent = `${el.getAttribute('data-target')}+`;
+    });
+    return;
+  }
 
   const observer = new IntersectionObserver((entries, obs) => {
     entries.forEach(entry => {
@@ -246,32 +208,39 @@ function initShowreelLazyLoad() {
   const video = document.querySelector('.impact-video[data-src]');
   if (!video) return;
 
+  if (prefersReducedMotion) video.controls = true;
+
   let loaded = false;
 
   // Stage 1 — Proximity: load when 600px away (showreel is near fold)
   const loadObserver = new IntersectionObserver((entries, obs) => {
     if (entries[0].isIntersecting && !loaded) {
       loaded = true;
-      video.src = video.dataset.src;
-      video.load();
       // Fade in from dark placeholder once data is ready
       video.addEventListener('loadeddata', () => {
         video.classList.add('loaded');
       }, { once: true });
+      video.addEventListener('error', () => {
+        const status = video.parentElement.querySelector('.video-status');
+        if (status) status.textContent = 'The showreel could not be loaded.';
+        video.parentElement.classList.add('has-error');
+      }, { once: true });
+      video.src = video.dataset.src;
+      video.load();
       obs.disconnect();
     }
   }, { rootMargin: '600px 0px' });
 
   // Stage 2 — Viewport: play / pause based on visibility
   const playObserver = new IntersectionObserver((entries) => {
-    if (entries[0].isIntersecting) {
+    if (entries[0].isIntersecting && !prefersReducedMotion) {
       // Only attempt play after src is assigned
       if (video.src) {
-        video.play().catch(() => {});
+        playVideo(video);
       } else {
         // Wait for canplay then play
         video.addEventListener('canplay', () => {
-          video.play().catch(() => {});
+          playVideo(video);
         }, { once: true });
       }
     } else {
@@ -287,23 +256,22 @@ function initShowreelLazyLoad() {
    6. PORTFOLIO GRID — RENDER + OBSERVE
 ═══════════════════════════════════════════ */
 function renderPortfolioGrid() {
-  const grid  = document.getElementById('portfolio-grid');
+  const grid = document.getElementById('portfolio-grid');
+  const featuredWork = document.getElementById('featured-work');
   const count = document.getElementById('work-count');
   if (!grid) return;
 
   // Clear skeleton placeholders
   grid.innerHTML = '';
+  if (featuredWork) featuredWork.innerHTML = '';
 
   PORTFOLIO_VIDEOS.forEach((item, i) => {
-    grid.appendChild(buildCard(item, i + 1));
+    const card = buildCard(item, i + 1);
+    if (item.featured && featuredWork) featuredWork.appendChild(card);
+    else grid.appendChild(card);
   });
 
-  if (count) {
-    count.textContent = `— ${PORTFOLIO_VIDEOS.length} selected works`;
-  }
-
-  // Attach cursor listeners to newly created cards
-  refreshCursorListeners();
+  if (count) count.textContent = `${PORTFOLIO_VIDEOS.length} selected works`;
 
   // Begin observing cards for lazy-load + playback
   initVideoObservers();
@@ -311,7 +279,7 @@ function renderPortfolioGrid() {
 
 /* ─── Build a single card DOM element ─── */
 function buildCard(item, index) {
-  const card = document.createElement('div');
+  const card = document.createElement('article');
   card.className = 'vid-card' + (item.featured ? ' featured-card' : '');
   card.setAttribute('data-id', item.id);
 
@@ -341,24 +309,40 @@ function buildCard(item, index) {
         data-src="${esc(item.videoUrl)}"
         aria-label="${esc(item.title)}"
       ></video>
-      <span class="vid-play" aria-hidden="true">
+      <button class="vid-play" type="button" aria-label="Play ${esc(item.title)}" aria-pressed="false">
         <svg viewBox="0 0 10 12"><path d="M0 0 L10 6 L0 12 Z"/></svg>
-      </span>
+      </button>
     </div>
     <div class="vid-info">
       <div class="vid-meta">
         <span class="vid-cat">${esc(item.category || 'Video Edit')}</span>
       </div>
-      <h4 class="vid-title">${esc(item.title)}</h4>
+      <h3 class="vid-title">${esc(item.title)}</h3>
       ${item.description ? `<p class="vid-desc">${esc(item.description)}</p>` : ''}
     </div>`;
 
-  // Click: toggle play / pause
-  card.addEventListener('click', () => {
-    const v = card.querySelector('video');
-    if (!v) return;
-    if (v.paused) { v.play().catch(() => {}); }
-    else          { v.pause(); }
+  const video = card.querySelector('video');
+  const playButton = card.querySelector('.vid-play');
+
+  video.addEventListener('play', () => {
+    playButton.setAttribute('aria-label', `Pause ${item.title}`);
+    playButton.setAttribute('aria-pressed', 'true');
+    playButton.innerHTML = '<svg viewBox="0 0 12 12" aria-hidden="true"><path d="M1 0h3v12H1zM8 0h3v12H8z"/></svg>';
+  });
+
+  video.addEventListener('pause', () => {
+    playButton.setAttribute('aria-label', `Play ${item.title}`);
+    playButton.setAttribute('aria-pressed', 'false');
+    playButton.innerHTML = '<svg viewBox="0 0 10 12" aria-hidden="true"><path d="M0 0 L10 6 L0 12 Z"/></svg>';
+  });
+
+  playButton.addEventListener('click', () => {
+    if (video.paused) {
+      loadVideo(video);
+      playVideo(video);
+    } else {
+      video.pause();
+    }
   });
 
   return card;
@@ -376,7 +360,7 @@ function buildCard(item, index) {
    Source is NEVER removed after loading.
 ═══════════════════════════════════════════ */
 function initVideoObservers() {
-  const videos = document.querySelectorAll('.vid-el[data-src]');
+  const videos = document.querySelectorAll('.featured-card .vid-el[data-src]');
   if (!videos.length) return;
 
   /* Stage 1 — Proximity loader */
@@ -385,26 +369,7 @@ function initVideoObservers() {
       if (!entry.isIntersecting) return;
       const video = entry.target;
 
-      // Guard: only load once
-      if (video.dataset.loaded) { obs.unobserve(video); return; }
-      video.dataset.loaded = '1';
-
-      const src = video.dataset.src;
-      if (!src) { obs.unobserve(video); return; }
-
-      video.src = src;
-      video.load();
-
-      // Fade in and hide poster once data has loaded
-      video.addEventListener('loadeddata', () => {
-        video.classList.add('loaded');
-        const card = video.closest('.vid-card');
-        if (card) {
-          const poster = card.querySelector('.vid-poster, .poster-placeholder');
-          if (poster) poster.classList.add('hidden');
-        }
-      }, { once: true });
-
+      loadVideo(video);
       obs.unobserve(video);
     });
   }, {
@@ -418,8 +383,8 @@ function initVideoObservers() {
       const video = entry.target;
       if (entry.isIntersecting) {
         // Only play after src has been assigned
-        if (video.src && video.src !== window.location.href) {
-          video.play().catch(() => {});
+        if (!prefersReducedMotion && video.src && video.src !== window.location.href) {
+          playVideo(video);
         }
       } else {
         if (!video.paused) video.pause();
@@ -432,6 +397,45 @@ function initVideoObservers() {
   videos.forEach(video => {
     proximityObserver.observe(video);
     playbackObserver.observe(video);
+  });
+}
+
+function loadVideo(video) {
+  if (video.dataset.loaded || !video.dataset.src) return;
+
+  video.dataset.loaded = '1';
+  video.addEventListener('loadeddata', () => {
+    video.classList.add('loaded');
+    const card = video.closest('.vid-card');
+    const poster = card && card.querySelector('.vid-poster, .poster-placeholder');
+    if (poster) poster.classList.add('hidden');
+  }, { once: true });
+
+  video.addEventListener('error', () => {
+    const button = video.closest('.vid-card')?.querySelector('.vid-play');
+    if (!button) return;
+    button.disabled = true;
+    button.textContent = 'Preview unavailable';
+    button.setAttribute('aria-label', 'Video preview unavailable');
+  }, { once: true });
+
+  video.src = video.dataset.src;
+  video.load();
+}
+
+function playVideo(video) {
+  document.querySelectorAll('.vid-el, .impact-video').forEach(otherVideo => {
+    if (otherVideo !== video) otherVideo.pause();
+  });
+
+  video.play().catch(error => {
+    if (error.name === 'AbortError') return;
+
+    const button = video.closest('.vid-card')?.querySelector('.vid-play');
+    if (!button) return;
+    button.disabled = true;
+    button.textContent = 'Preview unavailable';
+    button.setAttribute('aria-label', 'Video preview unavailable');
   });
 }
 

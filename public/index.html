@@ -33,10 +33,10 @@
 
   <!-- Stylesheet -->
   <link rel="stylesheet" href="/css/style.css">
+  <link rel="preload" as="image" href="/photos/first_page_hero.png" fetchpriority="high">
 </head>
 <body>
-  <!-- Custom difference cursor (active on mouse devices) -->
-  <div id="cursor" aria-hidden="true"></div>
+  <a class="skip-link" href="#main-content">Skip to content</a>
 
   <!-- Film grain atmospheric overlay -->
   <div class="noise" aria-hidden="true"></div>
@@ -53,7 +53,7 @@
        NAVIGATION
   ══════════════════════════════════════════════ -->
   <header>
-    <nav id="nav" aria-label="Main Navigation">
+    <nav id="nav" aria-label="Main navigation">
       <a href="#" class="nav-logo">Abhiram<span class="dot">.</span></a>
       <ul class="nav-links">
         <li><a href="#work">Work</a></li>
@@ -66,7 +66,7 @@
     </nav>
   </header>
 
-  <main>
+  <main id="main-content">
     <!-- ══════════════════════════════════════════════
          HERO SECTION
     ══════════════════════════════════════════════ -->
@@ -116,7 +116,7 @@
           <div class="hero-visual-wrap">
             <img
               src="/photos/first_page_hero.png"
-              alt="Abhiram - Creative Director Visual"
+              alt="Abhiram, creative director and video editor"
               class="hero-visual"
               width="1920"
               height="1080"
@@ -127,11 +127,12 @@
 
         <!-- RIGHT: hey, I’m Abhi -->
         <div class="hero-right">
-          <div class="hero-intro">hey, I’m</div>
-          <h2 class="hero-name">Abhi</h2>
+          <p class="hero-intro">hey, I’m</p>
+          <h2 class="hero-name">Abhiram</h2>
           <p class="hero-tagline-right">
             I help <span class="tag-accent">brands</span> turn boring, raw content into <span class="tag-accent">attention.</span>
           </p>
+          <a href="#work" class="hero-work-link">Explore selected work <span aria-hidden="true">↘</span></a>
         </div>
       </div><!-- /hero-inner -->
 
@@ -187,8 +188,8 @@
       <div class="impact-inner">
         <!-- Left Statement -->
         <div class="impact-text r">
-          <p class="sec-label" id="services-title">What I Do</p>
-          <h2 class="impact-statement r">
+          <p class="sec-label">What I Do</p>
+          <h2 class="impact-statement r" id="services-title">
             <span class="impact-line line-1">Your content</span>
             <span class="impact-line line-2"><s>deserves</s> demands</span>
             <span class="impact-line line-3"><span class="hl">attention.</span></span>
@@ -206,6 +207,7 @@
             preload="none"
             aria-label="Abhiram Creative Showreel"
           ></video>
+          <p class="video-status" aria-live="polite"></p>
         </div>
 
         <!-- Right Tag Cloud -->
@@ -236,11 +238,13 @@
           <div class="work-header-left r">
             <p class="sec-label">experience/work</p>
             <h2 class="sec-title" id="work-heading">Experience My Work</h2>
-            <p class="work-count" id="work-count">— Selected works</p>
+            <p class="work-count" id="work-count" aria-live="polite">Selected works</p>
           </div>
         </div>
 
-        <!-- Dynamic Masonry Container -->
+        <div class="featured-work r" id="featured-work" aria-label="Featured project"></div>
+
+        <!-- Supporting project previews -->
         <div class="masonry-grid r" id="portfolio-grid">
           <!-- Skeletons render instantly while data loads -->
           <div class="skeleton-card"><div class="skeleton-box skeleton-media"></div><div class="skeleton-box skeleton-text-lg"></div><div class="skeleton-box skeleton-text-sm"></div></div>
@@ -288,8 +292,8 @@
 
           <!-- Text Side -->
           <div class="about-text r d2">
-            <p class="sec-label" id="about-heading">About</p>
-            <h2 class="about-quote">
+            <p class="sec-label">About</p>
+            <h2 class="about-quote" id="about-heading">
               Every frame captures attention.<br>
               Every cut creates <em>impact.</em>
             </h2>
@@ -330,8 +334,8 @@
     ═══════════════════════════════════════════ -->
     <section class="sec sec-alt" id="clients" aria-labelledby="clients-heading">
       <div class="niches-wrap">
-        <p class="sec-label r" id="clients-heading">Who I Work With</p>
-        <h2 class="sec-title r">Built for brands<br>that want <em>results.</em></h2>
+        <p class="sec-label r">Who I Work With</p>
+        <h2 class="sec-title r" id="clients-heading">Built for brands<br>that want <em>results.</em></h2>
         <div class="nc-grid">
           <div class="nc r"><span class="nc-n">01</span><p class="nc-t">Personal Brands</p></div>
           <div class="nc r d1"><span class="nc-n">02</span><p class="nc-t">Influencers &amp; Creators</p></div>
@@ -347,8 +351,8 @@
     ══════════════════════════════════════════════ -->
     <section class="sec" aria-labelledby="process-heading">
       <div class="proc-wrap">
-        <p class="sec-label r" id="process-heading">How It Works</p>
-        <h2 class="sec-title r">Raw footage to <em>unforgettable.</em></h2>
+        <p class="sec-label r">How It Works</p>
+        <h2 class="sec-title r" id="process-heading">Raw footage to <em>unforgettable.</em></h2>
         <div class="proc-grid">
           <div class="step r">
             <div class="step-dot">01</div>
@@ -401,7 +405,7 @@
   ══════════════════════════════════════════════ -->
   <footer>
     <div class="foot-logo">Attention<b>.</b></div>
-    <p class="foot-copy">&copy; 2025 — All rights reserved.</p>
+    <p class="foot-copy">&copy; 2026 — All rights reserved.</p>
     <div class="social-links" aria-label="Social Profiles">
       <a href="https://www.instagram.com/astorybyabhi?igsh=aWwzcGpwZXlnaTBt" target="_blank" rel="noopener noreferrer" aria-label="Instagram">
         <i class="fab fa-instagram"></i>
